@@ -1,0 +1,54 @@
+name: CI and Pages
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+      - name: Check browser module syntax
+        run: |
+          node --check app.js
+          node --check cube-view.mjs
+          node --check graph-view.mjs
+      - name: Verify exact cube and graph semantics
+        run: node smoke.mjs
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Stage static site
+        run: |
+          mkdir -p _site/data
+          cp index.html styles.css app.js core.mjs cube-math.mjs cube-view.mjs graph-layouts.mjs graph-view.mjs _site/
+          cp data/c001-browser.json data/c001-collisions.json _site/data/
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
