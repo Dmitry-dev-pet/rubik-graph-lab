@@ -9,7 +9,7 @@ Interactive comparison of one exact Rubik's Cube state in four visual forms:
 
 ## Live site
 
-https://dmitry-dev-pet.github.io/rubik-graph-lab/
+https://rubik-graph-lab.vercel.app/
 
 ## Source of truth
 
@@ -46,12 +46,14 @@ node smoke.mjs
 The smoke test validates the C-001 schema, move/inverse tables, `g^4 = I`, inverse restoration,
 sampled W8 circle membership, exact 3D destination geometry, and routes in all graph layouts.
 
-## Vercel migration
+## Deployment
 
-This repository is the preferred standalone visualizer source. The current production visualizer is still served by the transitional `Dmitry-dev-pet/mytest` Vercel project.
+This repository is the canonical standalone visualizer source and is connected directly to the Vercel project `rubik-graph-lab`.
 
-Import this repository into Vercel as `rubik-graph-lab`:
+Stable production alias:
 
-https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FDmitry-dev-pet%2Frubik-graph-lab&project-name=rubik-graph-lab
+```text
+https://rubik-graph-lab.vercel.app
+```
 
-No application secret is required for the static visualizer.
+No application secret is required for the static visualizer. Guarded production deploys run through `Dmitry-dev-pet/github-control` and include an HTTP content smoke check.
