@@ -26,7 +26,7 @@ jobs:
         run: node smoke.mjs
 
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ENABLE_VISUALIZER_PAGES == 'true'
     needs: verify
     runs-on: ubuntu-latest
     permissions:
