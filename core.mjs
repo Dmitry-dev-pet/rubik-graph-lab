@@ -1,12 +1,12 @@
 export const FACES = ["U", "R", "F", "D", "L", "B"];
 
 export const FACE_COLORS = {
-  U: "#f8fafc",
-  R: "#ef4444",
-  F: "#22c55e",
-  D: "#facc15",
-  L: "#f97316",
-  B: "#3b82f6",
+  U: "#f4f1ea",
+  R: "#c43c32",
+  F: "#3a8f4c",
+  D: "#e8c44b",
+  L: "#e88732",
+  B: "#2d62b8",
 };
 
 export function clamp(value, min = 0, max = 1) {
