@@ -36,6 +36,7 @@ const speedRange = document.querySelector("#speed-range");
 const speedValue = document.querySelector("#speed-value");
 const trailsToggle = document.querySelector("#trails-toggle");
 const labelsToggle = document.querySelector("#labels-toggle");
+const presentationBtn = document.querySelector("#presentation-btn");
 
 const statMove = document.querySelector("#stat-move");
 const statProgress = document.querySelector("#stat-progress");
@@ -52,7 +53,7 @@ let active = null;
 let paused = false;
 let pausedAt = null;
 let executedQuarters = 0;
-let graphMode = "one";
+let graphMode = "nine";
 let hoverCubeToken = null;
 let hoverGraphToken = null;
 let pinnedToken = null;
@@ -318,6 +319,12 @@ scrambleBtn.addEventListener("click", () => {
 pauseBtn.addEventListener("click", togglePause);
 resetBtn.addEventListener("click", resetAll);
 
+presentationBtn.addEventListener("click", () => {
+  const enabled = document.body.classList.toggle("presentation-mode");
+  presentationBtn.textContent = enabled ? "Exit presentation" : "Presentation";
+  presentationBtn.setAttribute("aria-pressed", String(enabled));
+});
+
 speedRange.addEventListener("input", () => {
   speedValue.textContent = `${currentSpeed().toFixed(2)}×`;
 });
@@ -327,7 +334,7 @@ for (const button of graphModeButtons) {
 }
 
 buildMoveButtons();
-setGraphMode("one");
+setGraphMode("nine");
 requestAnimationFrame(tick);
 
 try {
