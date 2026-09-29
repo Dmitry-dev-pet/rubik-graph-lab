@@ -7,8 +7,6 @@ import {
   Mesh,
   MeshPhysicalMaterial,
   PerspectiveCamera,
-  PlaneGeometry,
-  PCFSoftShadowMap,
   Raycaster,
   Scene,
   Shape,
@@ -28,7 +26,7 @@ import {
   moveAxis,
 } from "./cube-math.mjs";
 
-const PLASTIC = "#090b0f";
+const PLASTIC = "#ece9e2";
 const BODY_SIZE = 0.92;
 const STICKER_SIZE = 0.76;
 const STICKER_RADIUS = 0.115;
@@ -64,19 +62,19 @@ const stickerGeometry = new ShapeGeometry(roundedRect(STICKER_SIZE, STICKER_RADI
 
 const bodyMaterial = new MeshPhysicalMaterial({
   color: new Color(PLASTIC),
-  roughness: 0.34,
-  metalness: 0.02,
-  clearcoat: 0.2,
-  clearcoatRoughness: 0.32,
+  roughness: 0.78,
+  metalness: 0,
+  clearcoat: 0.02,
+  clearcoatRoughness: 0.9,
 });
 
 function stickerMaterial(color) {
   return new MeshPhysicalMaterial({
     color: new Color(color),
-    roughness: 0.24,
+    roughness: 0.56,
     metalness: 0,
-    clearcoat: 0.28,
-    clearcoatRoughness: 0.22,
+    clearcoat: 0.04,
+    clearcoatRoughness: 0.8,
     emissive: new Color("#000000"),
     emissiveIntensity: 0,
     polygonOffset: true,
@@ -133,9 +131,8 @@ export class ThreeCubeView {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.outputColorSpace = SRGBColorSpace;
     this.renderer.toneMapping = ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.12;
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = PCFSoftShadowMap;
+    this.renderer.toneMappingExposure = 1.0;
+    this.renderer.shadowMap.enabled = false;
     this.renderer.setClearColor(0x000000, 0);
     host.replaceChildren(this.renderer.domElement);
 
@@ -170,41 +167,15 @@ export class ThreeCubeView {
   }
 
   setupStudio() {
-    this.scene.add(new AmbientLight(0xffffff, 0.42));
+    this.scene.add(new AmbientLight(0xffffff, 1.18));
 
-    const key = new DirectionalLight(0xffffff, 3.0);
-    key.position.set(4.8, 7.8, 6.2);
-    key.castShadow = true;
-    key.shadow.mapSize.set(2048, 2048);
-    key.shadow.camera.left = -5;
-    key.shadow.camera.right = 5;
-    key.shadow.camera.top = 5;
-    key.shadow.camera.bottom = -5;
-    key.shadow.camera.near = 0.1;
-    key.shadow.camera.far = 24;
-    key.shadow.bias = -0.00035;
+    const key = new DirectionalLight(0xffffff, 1.85);
+    key.position.set(5.5, 8.0, 6.5);
     this.scene.add(key);
 
-    const fill = new DirectionalLight(0xffe6c8, 1.15);
-    fill.position.set(-5.0, 2.8, 1.5);
+    const fill = new DirectionalLight(0xfff3df, 0.58);
+    fill.position.set(-5.0, 3.0, 2.0);
     this.scene.add(fill);
-
-    const rim = new DirectionalLight(0x74b9ff, 1.45);
-    rim.position.set(1.0, 4.0, -6.0);
-    this.scene.add(rim);
-
-    const floor = new Mesh(
-      new PlaneGeometry(14, 14),
-      new MeshPhysicalMaterial({
-        color: new Color("#ddd8cc"),
-        roughness: 0.76,
-        metalness: 0,
-      }),
-    );
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -1.53;
-    floor.receiveShadow = true;
-    this.scene.add(floor);
   }
 
   resize() {

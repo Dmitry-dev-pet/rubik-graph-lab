@@ -2,6 +2,8 @@ import { FACE_COLORS, easeCubic } from "./core.mjs";
 import { centerLabels, createGraphLayout } from "./graph-layouts.mjs";
 
 const SVG = "http://www.w3.org/2000/svg";
+const TAIL_MS = 140;
+const SEG_POOL = 12;
 
 const spring = (t) =>
   t >= 1 ? 1 : 1 - Math.exp(-5 * t) * Math.cos(4 * t);
@@ -61,6 +63,10 @@ function activePositions(layout, data, active, t) {
       y: path.cy + radius * Math.sin(angle),
       moving: true,
       ringKeys: path.ringKeys,
+      cx: path.cx,
+      cy: path.cy,
+      angle,
+      radius,
     };
   }
 
@@ -121,15 +127,19 @@ export class GraphView {
     trailGroup.classList.add("graph-trails");
     this.tailEls = [];
     for (let token = 0; token < 48; token += 1) {
-      const path = svgElement("polyline", {
-        fill: "none",
-        "stroke-linecap": "round",
-        "stroke-linejoin": "round",
-        "stroke-width": 3.2,
-        opacity: 0,
-      });
-      trailGroup.append(path);
-      this.tailEls[token] = path;
+      const segs = [];
+      for (let i = 0; i < SEG_POOL; i += 1) {
+        const path = svgElement("path", {
+          fill: "none",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+          opacity: 0,
+        });
+        path.style.display = "none";
+        trailGroup.append(path);
+        segs.push(path);
+      }
+      this.tailEls[token] = segs;
     }
     svg.append(trailGroup);
 
@@ -192,18 +202,74 @@ export class GraphView {
     for (const [key, circle] of this.ringEls) {
       const active = activeKeys.has(key);
       circle.setAttribute("stroke", active ? "#6b655a" : "#b9b09f");
-      circle.setAttribute("stroke-width", active ? "2.1" : "1.35");
-      circle.setAttribute("opacity", active ? "1" : "0.84");
+      circle.setAttribute("stroke-width", active ? "2.0" : "1.35");
+      circle.setAttribute("opacity", active ? "1" : "0.76");
+    }
+  }
+
+  hideTrail(token) {
+    for (const path of this.tailEls[token] ?? []) {
+      path.style.display = "none";
+      path.setAttribute("opacity", "0");
     }
   }
 
   resetHistories(active) {
+    if (!active) {
+      this.activeRef = null;
+      return;
+    }
     if (this.activeRef === active) return;
     this.activeRef = active;
     this.histories = Array.from({ length: 48 }, () => []);
-    for (const tail of this.tailEls) {
-      tail.setAttribute("points", "");
-      tail.setAttribute("opacity", "0");
+    for (let token = 0; token < 48; token += 1) this.hideTrail(token);
+  }
+
+  renderTail(token, now, color) {
+    const history = this.histories[token];
+    const segs = this.tailEls[token] ?? [];
+    const cutoff = now - TAIL_MS;
+
+    while (history.length > 1 && history[0].ts < cutoff) history.shift();
+
+    const n = history.length - 1;
+    const first = Math.max(0, n - segs.length);
+    for (let i = 0; i < segs.length; i += 1) {
+      const path = segs[i];
+      const si = first + i;
+      if (si >= n) {
+        path.style.display = "none";
+        continue;
+      }
+
+      const s0 = history[si];
+      const s1 = history[si + 1];
+      const da = s1.angle - s0.angle;
+      if (Math.abs(da) < 0.001) {
+        path.style.display = "none";
+        continue;
+      }
+
+      const age = Math.min(1, (now - s1.ts) / TAIL_MS);
+      const ar = (s0.radius + s1.radius) / 2;
+      const x0 = s0.cx + s0.radius * Math.cos(s0.angle);
+      const y0 = s0.cy + s0.radius * Math.sin(s0.angle);
+      const x1 = s1.cx + s1.radius * Math.cos(s1.angle);
+      const y1 = s1.cy + s1.radius * Math.sin(s1.angle);
+      const large = Math.abs(da) > Math.PI ? 1 : 0;
+      const sweep = da > 0 ? 1 : 0;
+
+      path.setAttribute("d", `M ${x0} ${y0} A ${ar} ${ar} 0 ${large} ${sweep} ${x1} ${y1}`);
+      path.setAttribute("stroke", color);
+      path.setAttribute(
+        "stroke-width",
+        (6.2 * Math.pow(1 - age, 1.4) + 0.55).toFixed(2),
+      );
+      path.setAttribute(
+        "opacity",
+        (0.72 * Math.pow(1 - age, 1.2)).toFixed(3),
+      );
+      path.style.display = "";
     }
   }
 
@@ -220,6 +286,7 @@ export class GraphView {
     this.setMode(mode, data);
     this.resetHistories(active);
 
+    const now = performance.now();
     const positions = active
       ? activePositions(this.layout, data, active, t)
       : committedPositions(this.layout, data, state);
@@ -240,23 +307,24 @@ export class GraphView {
 
       const selected = token === selectedToken;
       node.setAttribute("stroke", selected ? "#111111" : "#2b2b2b");
-      node.setAttribute("stroke-width", selected ? "3.2" : point.moving ? "1.7" : "1.25");
-      node.setAttribute("r", selected ? "7.6" : this.mode === "nine" ? "6.2" : "6.0");
+      node.setAttribute("stroke-width", selected ? "3.0" : point.moving ? "1.65" : "1.25");
+      node.setAttribute("r", selected ? "7.5" : this.mode === "nine" ? "6.2" : "6.0");
 
-      const history = this.histories[token];
+      const color = FACE_COLORS[data.slots[token].solved_color];
       if (active && point.moving && showTrails) {
-        history.push({ x: point.x, y: point.y });
-        if (history.length > 9) history.shift();
-        const tail = this.tailEls[token];
-        tail.setAttribute(
-          "points",
-          history.map((sample) => `${sample.x.toFixed(2)},${sample.y.toFixed(2)}`).join(" "),
-        );
-        tail.setAttribute("stroke", FACE_COLORS[data.slots[token].solved_color]);
-        tail.setAttribute("opacity", "0.5");
-      } else {
-        this.tailEls[token].setAttribute("opacity", "0");
+        this.histories[token].push({
+          ts: now,
+          angle: point.angle,
+          radius: point.radius,
+          cx: point.cx,
+          cy: point.cy,
+        });
+      } else if (!showTrails) {
+        this.histories[token] = [];
       }
+
+      if (showTrails) this.renderTail(token, now, color);
+      else this.hideTrail(token);
     }
 
     this.updateRings(activeRingKeys);
